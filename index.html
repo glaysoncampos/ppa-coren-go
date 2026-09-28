@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PPA Coren Goiás</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
@@ -81,6 +84,30 @@
   .note{font-size:12.5px;color:var(--text-muted);line-height:1.5;}
 
   /* ---------- KPI cards ---------- */
+  .progress-card{
+    background:linear-gradient(160deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px 18px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  }
+  .progress-ring{position:relative;width:132px;height:132px;flex:none;margin-inline:auto;}
+  .progress-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .progress-ring .track{fill:none;stroke:var(--surface-3);stroke-width:12;}
+  .progress-ring .fill{fill:none;stroke:var(--accent);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+  .progress-ring .ring-label{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .progress-ring .ring-pct{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1;}
+  .progress-ring .ring-sub{font-size:10.5px;color:var(--text-muted);margin-top:3px;text-align:center;}
+  .progress-stats{flex:1 1 200px;min-width:200px;display:flex;flex-direction:column;gap:10px;}
+  .progress-stats .p-headline{font-family:var(--font-display);font-size:16px;font-weight:700;}
+  .progress-stats .p-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text-secondary);gap:10px;}
+  .progress-stats .p-row b{color:var(--text-primary);font-variant-numeric:tabular-nums;}
+  @media(max-width:520px){
+    .progress-card{flex-direction:column;text-align:center;padding:22px 16px;}
+    .progress-stats{width:100%;}
+    .progress-stats .p-row{justify-content:space-between;}
+  }
+
   .kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
   @media(min-width:640px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
   @media(min-width:900px){.kpi-grid{grid-template-columns:repeat(5,1fr);}}
@@ -316,6 +343,8 @@
       <p class="eyebrow">Painel de acompanhamento</p>
       <h1 class="section-title" style="font-size:20px;">Execução do PPA 2025–2027</h1>
     </div>
+
+    <div class="progress-card" id="progressCard"></div>
 
     <div class="kpi-grid" id="kpiGrid"></div>
 
@@ -766,9 +795,33 @@
   }
 
   // ---------------- Overview ----------------
+  function buildProgressRing(k){
+    var r = 54, c = 2*Math.PI*r;
+    var pct = k.pctFeito; // % concluído sobre as iniciativas ativas
+    var offset = c * (1 - pct/100);
+    var restantes = k.ativos - k.byStatus.FEITO; // ainda em Fazendo ou A fazer
+    $("#progressCard").innerHTML =
+      '<div class="progress-ring">' +
+        '<svg viewBox="0 0 132 132" role="img" aria-label="'+pct+'% das iniciativas ativas concluídas">' +
+          '<circle class="track" cx="66" cy="66" r="'+r+'"></circle>' +
+          '<circle class="fill" cx="66" cy="66" r="'+r+'" stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+offset.toFixed(1)+'"></circle>' +
+        '</svg>' +
+        '<div class="ring-label"><span class="ring-pct tabular">'+pct+'%</span><span class="ring-sub">concluído</span></div>' +
+      '</div>' +
+      '<div class="progress-stats">' +
+        '<div class="p-headline">'+k.byStatus.FEITO+' de '+k.ativos+' iniciativas ativas concluídas</div>' +
+        '<div class="p-row"><span>Faltam concluir</span><b>'+restantes+' iniciativas</b></div>' +
+        '<div class="p-row"><span>Em execução (Fazendo)</span><b>'+k.byStatus.FAZENDO+'</b></div>' +
+        '<div class="p-row"><span>Ainda não iniciadas (A fazer)</span><b>'+k.byStatus["A FAZER"]+'</b></div>' +
+        '<div class="p-row"><span>Fora do cálculo (Canceladas)</span><b>'+k.byStatus.CANCEL+'</b></div>' +
+      '</div>';
+  }
+
   function renderOverview(){
     var data = state.data;
     var k = computeKpis(data);
+
+    buildProgressRing(k);
 
     $("#kpiGrid").innerHTML =
       '<div class="kpi accentline"><span class="k-label">TOTAL DE INICIATIVAS</span><span class="k-value tabular">'+k.total+'</span><span class="k-sub">11 objetivos estratégicos</span></div>' +
